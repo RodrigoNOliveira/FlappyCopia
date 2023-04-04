@@ -4,8 +4,8 @@ import Level from "./src/scenes/Level";
 import Primeira from "./src/scenes/Primeira";
 
 const config = {
-  width: 1340,   // largura
-  height: 600,  //altura
+  width: 1720,   // largura
+  height: 780,  //altura
   type: AUTO,   //tipo de renderização
   scene: [Level, GamerOver],
   physics: {
