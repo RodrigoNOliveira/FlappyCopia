@@ -1,5 +1,5 @@
 import { Math, Scene } from "phaser";
-import Carrot from "../objects/Carrots";
+
 
 export default class Level extends Scene{
 
@@ -12,12 +12,15 @@ export default class Level extends Scene{
     /** @type {Phaser.Physics.Arcade.Sprite} */
     pipes1;
 
+    
+    /**@type {Phaser.Physics.Arcade.Group} */
+    star;
 
     /**@type {Phaser.Types.Input.Keyboard.CursorKeys} */
     cursors
 
 
-    points = 0;
+    points = -1;
     /**@type {Phaser.GameObjects.Text} */
     pointsText;
 
@@ -27,46 +30,58 @@ export default class Level extends Scene{
 
     preload(){
         this.load.image('background', 'assets/backgroundColorGrass.png');
-        this.load.image('pipe', 'assets/cano.png');
-        this.load.image('pipe1', 'assets/cano2.png');
+        this.load.image('pipe', 'assets/canoG.png');
+        this.load.image('pipe1', 'assets/canoG2.png');
         this.load.image('plane1', 'assets/planeBlue1.png');
         this.load.image('plane2', 'assets/planeBlue2.png');
         this.load.image('plane3', 'assets/planeBlue3.png');
-
-        this.load.audio('gameover', 'assets/sfx/gameover.ogg');
+        this.load.image('star', 'assets/starGold.png');
+        this.load.audio('gameover', 'assets/sfx/big-impact-7054.mp3');
     }
 
     create(){
         //BACKGROUND
-        this.add.image( this.scale.width/2 ,this.scale.height/2, 'background').setScrollFactor(0,0).setScale(1.5);
+        this.add.image( this.scale.width/2 ,this.scale.height/2, 'background').setScrollFactor(0,0).setScale(0.85);
         
-
+        //TEXTO DE PONTUAÇÃO
+        const style = { color: '#000', frontSize: 24};
+        this.pointsText = this.add.text(240, 10, 'Pipes: 0', style);
+        this.pointsText.setScrollFactor(0);
+        this.pointsText.setOrigin(0.5, 0);
+        
+        
+        
         //GRUPO DE CANOS
         this.pipes = this.physics.add.staticGroup();
         this.pipes1 = this.physics.add.staticGroup();
 
-        for (let i = 0; i <= 5; i++){
-            const y = Math.Between(390,700);
-            const x = 600 *i;
+        for (let i = 0; i < 5; i++){
+            // if(this.pipe.x < this.cameras.main.scrollX){
+            //     this.points++;
+            // this.pointsText.text = 'Pipes: ' + this.points;
+            // }
+            const y = Math.Between(200,450);
+            const x = 300 *i;
             
 
             const pipe = this.pipes.create(x,y, 'pipe');
             pipe.setOrigin(0, 0);
-            pipe.setScale(0.5);
+            pipe.setScale(0.15);
             pipe.body.updateFromGameObject();
         
 
-            const pipe1 = this.pipes1.create(x,y-250 , 'pipe1');
+            const pipe1 = this.pipes1.create(x,y-150 , 'pipe1');
             pipe1.setOrigin(0, 1);
-            pipe1.setScale(0.5);
+            pipe1.setScale(0.15);
             pipe1.body.updateFromGameObject();
+            
         }
 
 
         //CRIANDO O PLAYER
 
-        this.player = this.physics.add.image(240 ,120, 'plane1')
-            .setScale(1);
+        this.player = this.physics.add.image(120,240, 'plane1')
+            .setScale(0.5);
         
         this.player.setVelocityX(100);
 
@@ -83,6 +98,8 @@ export default class Level extends Scene{
 
         //CÂMERA
         this.cameras.main.startFollow(this.player);
+        //this.cameras.main.setFollowOffset(230, 360);
+        this.cameras.main.setLerp(1,0);
 
 
         //DEFINIR A DEAD ZONE PARA A CAMERA
@@ -95,19 +112,15 @@ export default class Level extends Scene{
         //CURSORES  
         this.cursors = this.input.keyboard.createCursorKeys();
 
-        //CENOURAS
-        this.carrots = this.physics.add.group({
-            classType: Carrot
-        });
-        this.physics.add.collider(this.carrots, this.pipes);
-        this.physics.add.overlap(this.player, this.carrots, this.handleCollectCarrot, undefined, this);
+        // Estrela
+        // this.stars = this.physics.add.group({
+        //     classType: Star
+        // });
+        // this.physics.add.collider(this.stars, this.pipes);
+        // this.physics.add.overlap(this.player, this.stars, this.handleCollectStar);
 
 
-        //TEXTO DE PONTUAÇÃO
-        const style = { color: '#000', frontSize: 24};
-        this.pointsText = this.add.text(240, 10, 'Pipes: 0', style);
-        this.pointsText.setScrollFactor(0);
-        this.pointsText.setOrigin(0.5, 0);
+        
 
 
       
@@ -117,6 +130,8 @@ export default class Level extends Scene{
 
 
     update(time ,delta){
+
+
         //PULANDO
         /*const touchingGround = this.player.body.touching.down;
        
@@ -132,110 +147,112 @@ export default class Level extends Scene{
             this.player.setTexture('plane2');
         }
 
-        // let velocityY = this.player.body.velocity.y;
-        // if (velocityY > 0 && this.player.texture.key != 'plane1'){
-        //     this.player.setTexture('plane1');
-        // }
+        let velocityY = this.player.body.velocity.y;
+        if (velocityY > 0 && this.player.texture.key != 'plane1'){
+            this.player.setTexture('plane1');
+        }
 
-        
         //REUSANDO OS pipes
-        // this.pipes.children.iterate(child =>{
-        //     /** @type {Phaser.Physics.Arcade.Sprite} */
-        //     const pipe = child;
+        this.pipes.children.iterate(child =>{
+         /** @type {Phaser.Physics.Arcade.Sprite} */
+         const pipe = child;
+        this.pipes1.children.iterate(child =>{
+             /** @type {Phaser.Physics.Arcade.Sprite} */
+            const pipe1 = child;
+
+        //PEGAR A POSIÇÃO X DA CAMERA
+        const scrollX = this.cameras.main.scrollX;
+
+         if(pipe.getBounds().right < this.player.getBounds().left && !pipe.scored){
+                pipe.scored = true;
+                this.points++;
+                this.pointsText.text = 'Pipes: ' + this.points;
+            }
+        if (pipe.x <= scrollX - 500 && pipe1.x <=scrollX -500){
+
+           
 
 
-        //     //PEGAR A POSIÇÃO Y DA CAMERA
-        //     const scrollY = this.cameras.main.scrollY;
-        //     if (pipe.y >= scrollY + 650){
-        //         pipe.x = Math.Between(80,400);
-        //         pipe.y = scrollY - Math.Between(0,10);
-        //         pipe.body.updateFromGameObject();
-
-        //     }
-
-        // })
-        // this.pipes1.children.iterate(child =>{
-        //     /** @type {Phaser.Physics.Arcade.Sprite} */
-        //    const pipe1 = child;
-
-
-        //     //PEGAR A POSIÇÃO Y DA CAMERA
-        //     const scrollY = this.cameras.main.scrollY;
-        //     if (pipe1.y >= scrollY + 650){
-        //         pipe1.x = Math.Between(80,400);
-        //         pipe1.y = scrollX - Math.Between(0,10);
-        //         pipe1.body.updateFromGameObject();
-        //     }
-
-        // })
+            pipe.setOrigin(0, 0);
+            //pipe.setScale(0.25);
+            pipe.y = Math.Between(200,520);
+            pipe.x = scrollX + 1050;
+            pipe.body.updateFromGameObject();
+            
+            //this.addStarAbove(pipe);
+            
+            pipe1.setOrigin(0, 1);
+            //pipe1.setScale(0.25);
+            pipe1.x = pipe.x;
+            pipe1.y = pipe.y -150;
+            pipe1.body.updateFromGameObject();
+             }
+         })})
         
 
 
-        //CURSORES DIREITA E ESQUERDA
-        // if (this.cursors.left.isDown){
-        //     this.player.setVelocityX(-200);
-
-        // } else if (this.cursors.right.isDown){
-        //     this.player.setVelocityX(200);
-        // }else 
+        //CURSOR CIMA
         if (this.cursors.up.isDown){
             this.player.setVelocityY(-200);
          }
 
 
         //Testando se o aviao morrwu
-        if(this.player.y >= this.scale.height){
-            this.scene.start('game-over');
+        if(this.player.y > this.scale.height){
+            this.scene.start('game-over', this.pointsText.text);
             this.sound.play('gameover');
-        } else if(this.player.y <= 1){
-            this.scene.start('game-over');
+            this.points = -1;
+         } else if(this.player.y < -100){
+             this.scene.start('game-over', this.pointsText.text);
+             this.sound.play('gameover');
+             this.points = -1;
+        } 
+        else if( this.player.body.touching.up ||this.player.body.touching.right || this.player.body.touching.down || this.player.body.touching.left){
+            this.scene.start('game-over', this.pointsText.text);
             this.sound.play('gameover');
-        } else if( this.player.body.touching.up ||this.player.body.touching.right || this.player.body.touching.down || this.player.body.touching.left){
-            this.scene.start('game-over');
-            this.sound.play('gameover');
+            this.points = -1;
         }
 
     }
 
 
 
-    addCarrotAbove(pipe){
-        const y = pipe.y - pipe.displayHeight;
+    // addStarAbove(pipe){
+    //     const y = pipe.y - pipe.displayHeight;
 
 
-        const carrot = this.carrots.get(pipe.x, y, 'carrot');
+    //     const star = this.stars.get(x, pipe.y, 'star');
 
-        carrot.setActive(true);
-        carrot.setVisible(true);
+    //     star.setActive(true);
+    //     star.setVisible(true);
 
-        this.add.existing(carrot);
-        carrot.body.setSize(carrot.width, carrot.height);
-        this.physics.world.enable(carrot);
-    }
+    //     this.add.existing(star);
+    //     star.body.setSize(star.width, star.height);
+    //     this.physics.world.enable(star);
+    // }
 
-    handleCollectCarrot(player, carrot){
-        this.carrots.killAndHide(carrot);
-        this.physics.world.disableBody(carrot.body);
-        this.points++;
-        this.pointsText.text = 'Pipes: ' + this.points;
-    }
+    // handleCollectStar(player, star){
+    //     this.stars.killAndHide(star);
+    //     this.physics.world.disableBody(star.body);
+        
+    // }
 
 
-    findBottomPipe(){
-        let pipes = this.pipes.getChildren();
-        let bottomPipe = pipes[0];
+    // findBottomPipe(){
+    //     let pipes = this.pipes.getChildren();
+    //     let bottomPipe = pipes[0];
 
-        for(let i = 1; i < pipes.length; i++){
-            let pipe = pipes[i];
+    //     for(let i = 1; i < pipes.length; i++){
+    //         let pipe = pipes[i];
 
-            if(pipe.y < bottomPipe.y){
-                continue;
-            }
-            bottomPipe = pipe;
-        }
+    //         if(pipe.y < bottomPipe.y){
+    //             continue;
+    //         }
+    //         bottomPipe = pipe;
+    //     }
 
-        return bottomPipe;
-    }
+    //     return bottomPipe;
+    // }
 
 
 }
